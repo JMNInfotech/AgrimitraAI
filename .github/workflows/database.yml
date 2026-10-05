@@ -1,0 +1,29 @@
+name: database
+on:
+  pull_request:
+    paths: ["database/**", "backend/**", "infra/docker/postgres/**"]
+  push:
+    branches: [main]
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://agri:agri@localhost:5432/agrimitra
+      AGRIMITRA_TEST_DB: Host=localhost;Database=agrimitra;Username=agri;Password=agri
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start PostgreSQL (PostGIS + pgvector)
+        run: |
+          docker build -t agrimitra-postgres infra/docker/postgres
+          docker run -d --name pg -p 5432:5432 -e POSTGRES_USER=agri -e POSTGRES_PASSWORD=agri -e POSTGRES_DB=agrimitra agrimitra-postgres
+          for i in $(seq 1 30); do pg_isready -h localhost -U agri && break; sleep 2; done
+      - name: Apply migrations and seed
+        run: ./database/setup-local.sh --dev-seed
+      - name: Verify conventions and smoke tests
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/verify.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/smoke.sql
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 10.0.x }
+      - name: EF mapping tests against the migrated schema
+        run: dotnet test backend/Agrimitra.sln

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Agrimitra.Domain\Agrimitra.Domain.csproj" />
     <ProjectReference Include="..\Agrimitra.SharedKernel\Agrimitra.SharedKernel.csproj" />
+    <ProjectReference Include="..\Agrimitra.Infrastructure\Agrimitra.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
